@@ -11,7 +11,7 @@ import cv2
 import numpy as np
 from plantcv import plantcv as pcv
 import matplotlib.pyplot as plt
-from readscale import read_scale
+# from readscale import read_scale
 
 #%%
 def qsigmoid(image, q = 0.35, alpha = 45, beta = 65, L = 255): 
@@ -24,19 +24,16 @@ def qsigmoid(image, q = 0.35, alpha = 45, beta = 65, L = 255):
     return 2*L/(1 + np.power(1 + (1 - q)*np.abs((image - beta)/alpha), 1/(1 - q)))
 
 #%%¨
-thermal_data,path,filename = pcv.readimage(filename='FLIR0223.jpg', mode="flir") #mode="native"
+thermal_data,path,filename = pcv.readimage(filename='./calibrationImages/Working/FLIR0213.jpg', mode="flir") #mode="native"
 # thermal_data = cv2.imread('segemented_img.jpg')
 
 
 gray_img = cv2.cvtColor(thermal_data, cv2.COLOR_BGR2GRAY)
-# gray_img = gray_img.astype('float64')
+# gray_img = thermal_data
 
-# sigmoid_img = qsigmoid(gray_img)
-
-
-# ret, segmented_img = cv2.threshold(sigmoid_img, 1, 255, cv2.THRESH_BINARY)
 _ = 0
-ret, segmented_img = cv2.threshold(sigmoid_img, _ ,255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+ret, segmented_img = cv2.threshold(gray_img, _ , 255 , cv2.THRESH_OTSU)
+segmented_img = 255 - segmented_img
 cv2.imshow('image', segmented_img)
 
 cv2.waitKey(0)
@@ -49,17 +46,17 @@ plt.hist(gray_img.ravel(),256,[0,256])
 plt.show()
 
 #%%
-cv2.imwrite('FLIR0223_gray_data.jpg', gray_img)
+# cv2.imwrite('calibrationImages/Chessboards/P001.jpg', gray_img)
 # cv2.imwrite('FLIR0223_sigmoid_data.jpg', sigmoid_img)
-cv2.imwrite('FLIR0223_segmented_img.jpg', segmented_img)
+cv2.imwrite('calibrationImages/Chessboards/P007.jpg', segmented_img)
 
 
 # img = cv2.imread('FLIR_0223_gray_data.jpg')
-img = cv2.imread('FLIR_0223_segmented_img.jpg')
-cv2.imshow('image', img)
+# img = cv2.imread('calibrationImages/Chessboards/P001.jpg')
+# cv2.imshow('image', img)
 
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
 
 #%% sigmoid plotting
 

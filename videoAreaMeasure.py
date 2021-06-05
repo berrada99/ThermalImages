@@ -9,6 +9,7 @@ Created on Fri Jun  4 12:25:58 2021
 import cv2 
 import numpy as np 
 import glob
+import time
 GRAY_SHAPE = (576, 324)
 
 # %%
@@ -48,7 +49,7 @@ def calibration():
     # gray_imgs = []
     # img_names = []
     
-    images = glob.glob('/home/hassan/ThermalImagesCv/calibrationImages5/calibrate/*.jpg')
+    images = glob.glob('/home/hassan/ThermalImagesCv/calibrationImages6/*.jpg')
     # images  = glob.glob('/home/hassan/ThermalImagesCv/calibrationImages/Working/*.jpg')
     # print(images)
     for fname in images:
@@ -243,7 +244,7 @@ def areaCalc(segmented_img, A, C):
 
 
 def areaCalc2(segmented_img, A, C, detJacobPhi):
-    area = np.sum(np.multiply((segmented_img == 255), detJacobPhi)
+    area = np.sum(np.multiply((segmented_img == 255), detJacobPhi))
     return area
 
 # %% Reading video file 
@@ -264,9 +265,15 @@ V = np.tile(np.reshape(np.arange(0, vmax), (vmax, 1)), (1, umax))
 
 detJacobPhi = getDetJacobPhi2(A, C, U, V)
 
+text_u = 280
+text_v1 = 50
+text_v2 = 300
+font_size = 0.65
 
 # Opening video 
-cap = cv2.VideoCapture('/home/hassan/ThermalImagesCv/ThermalVideos/test.avi')
+cap = cv2.VideoCapture('/home/hassan/ThermalImagesCv/ThermalVideos/test2.mp4')
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+out = cv2.VideoWriter('/home/hassan/ThermalImagesCv/ThermalVideos/output5.avi', fourcc, 7, GRAY_SHAPE)
 
 while cap.isOpened():
     ret, frame = cap.read()
@@ -275,16 +282,59 @@ while cap.isOpened():
         print("Can't receive frame (stream end?). Exiting ...")
         break
     # Processing image
-    frame = ResizeWithAspectRatio(frame, 576)
+    # frame = ResizeWithAspectRatio(frame, 576)
+    frame = cv2.resize(frame, GRAY_SHAPE, interpolation=cv2.INTER_CUBIC)
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    ret, segmented_img = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    area = areaCalc2(segmented_img, A, C, detJacobPhi)
-    print(area)
-    print(A, C)
     
+    # Otsu 
+    # ret, segmented_img = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    
+    # Manual
+    ret, segmented_img = cv2.threshold(gray, 102, 255, cv2.THRESH_BINARY)
+    segmented_img = 255 - segmented_img
+    
+    # K-Means
+    # kmeans_img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    # pixel_vals = kmeans_img.reshape((-1, 3))
+    # pixel_vals = np.float32(pixel_vals)
+    # criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.85)
+    # k = 2
+    # retval, labels, centers = cv2.kmeans(pixel_vals, k, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+    # centers = np.uint8(centers)
+    # segmented_img = centers[labels.flatten()]
+    # segmented_data = centers[labels.flatten()]
+    # segmented_img = segmented_data.reshape((frame.shape))
+    
+    # Arbitrary and temporary 
+    """
+    if (np.sum((centers[0] - centers[1])**2 > 2000)):
+        centers = np.array([[255, 0, 0], [0, 0, 255]])
+        centers = np.uint8(centers)
+    else:
+        centers = np.array([[0, 0, 255], [0, 0, 255]])
+        centers = np.uint8(centers)
+        
+    segmented_data = centers[labels.flatten()]
+    segmented_img = segmented_data.reshape((frame.shape))
+    """
+    
+    # area = areaCalc(segmented_img, A, C)
+    area = int(areaCalc2(segmented_img, A, C, detJacobPhi))
+    # area = 0
+
+    time.sleep(0.1)
     # Putting text
-    image = cv2.putText(frame, "Area of Water = " + str(area) + " cm2",(300,300), font, 0.5, (0, 0, 255),2,cv2.LINE_AA)
+    if area < 15:
+        image = cv2.putText(frame, "Surface d'eau = " + str(int(area)) + " cm2 ", (text_u,text_v2), font, font_size, (255, 0, 0),1,cv2.LINE_AA)
+        image = cv2.putText(image, "Seuil d'alerte : Minimale", (text_u,text_v1), font, 0.65, (255, 0, 0),1,cv2.LINE_AA)
+    elif area > 600:
+        image = cv2.putText(frame, "Surface d'eau = " + str(int(area)) + " cm2 ", (text_u,text_v2), font, font_size, (0, 0, 155),1,cv2.LINE_AA)
+        image = cv2.putText(image, "Seuil d'alerte : Maximale", (text_u,text_v1), font, 0.65, (0, 0, 155),1,cv2.LINE_AA)
+    else:
+        image = cv2.putText(frame, "Surface d'eau = " + str(int(area)) + " cm2 ", (text_u,text_v2), font, font_size, (69, 69, 69),1,cv2.LINE_AA)
+        image = cv2.putText(image, "Seuil d'alerte : Moderee", (text_u,text_v1), font, font_size, (69, 69, 69),1,cv2.LINE_AA)
     cv2.imshow('frame', image)
+    # out.write(image)
     if cv2.waitKey(1) == ord('q'):
         break
     
